@@ -1,53 +1,33 @@
-import pandas as pd
-import scipy.stats as sp
-import numpy as np
-import seaborn as sns
-import time
-import matplotlib.pyplot as plt
+import scipy.stats as stats
 import pandas as pd
 import pingouin as pg
-# import pymc3 as pm
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import seaborn as sns
-from sklearn.preprocessing import PolynomialFeatures
 import numpy as np
 
 
-# def timeit(method):
-#     def timed(*args, **kw):
-#         ts = time.time()
-#         result = method(*args, **kw)
-#         te = time.time()
-#         if 'log_time' in kw:
-#             name = kw.get('log_name', method.__name__.upper())
-#             kw['log_time'][name] = int((te - ts) * 1000)
-#         else:
-#             print('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
-#         return result
-#     return timed
-
-
-# @timeit
 def phase_diagram():
     good = 2.5
-    bad = .8
+    bad = 1.5
 
     vmin = 7.5
     vmax = 25
 
-    labelx = 'Contribution x'
-    labely = 'Contribution y'
-    cbar_kw = {'label': 'payoff for x'}
+    labelx = 'Contribution i'
+    labely = 'Contribution j'
+    cbar_kw = {'label': 'payoff for i'}
+    # creating a colormap
+    colormap = plt.get_cmap("Blues")
 
     for t1, t2 in ((good, good), (bad, bad), (good, bad), (bad, good)):
-        title = f'x={t1} - y={t2}'
+        title = '$i_{multiplier}=' + str(t1) + ',\ j_{multiplier}=' + str(t2) + '$'
         data = np.zeros((11, 11))
         for i in range(11):
             for j in range(11):
                 data[j, i] = 10 - i + ((i*t1 + j*t2)/2)
 
-        sns.heatmap(data, vmin=vmin, vmax=vmax, cbar_kws=cbar_kw, annot=True, fmt='.1f')
+        sns.heatmap(data, vmin=vmin, vmax=vmax, cbar_kws=cbar_kw, annot=True, fmt='.1f', cmap=colormap)
         plt.xlabel(labelx)
         plt.ylabel(labely)
         plt.title(title)
@@ -56,7 +36,8 @@ def phase_diagram():
 
 def contribution_by_group(df):
     # exclude bots
-    df = df[df['rt1'] != -1]
+    prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
+    df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
 
     # plot 3
     ax = plt.subplot(111)
@@ -73,183 +54,189 @@ def contribution_by_group(df):
 
     hue_order = []
     for (i, j) in ((2.5, 2.5), (2.5, 1.5), (1.5, 1.5), (1.5, 2.5)):
-        hue_order.append(f'x={i}, y={j}')
+        hue_order.append(f'i={i}, j={j}')
 
-    sem1 = stats.sem(dff_gg.groupby('id_in_session')['contribution'].mean())
-    sem2 = stats.sem(dff_gb.groupby('id_in_session')['contribution'].mean())
-    sem3 = stats.sem(dff_bb.groupby('id_in_session')['contribution'].mean())
-    sem4 = stats.sem(dff_bg.groupby('id_in_session')['contribution'].mean())
+    sem1 = dff_gg.groupby('id_in_session')['contribution'].mean().sem()
+    sem2 = dff_gb.groupby('id_in_session')['contribution'].mean().sem()
+    sem3 = dff_bb.groupby('id_in_session')['contribution'].mean().sem()
+    sem4 = dff_bg.groupby('id_in_session')['contribution'].mean().sem()
 
-    mean1 = np.mean(dff_gg.groupby('id_in_session')['contribution'].mean())
-    mean2 = np.mean(dff_gb.groupby('id_in_session')['contribution'].mean())
-    mean3 = np.mean(dff_bb.groupby('id_in_session')['contribution'].mean())
-    mean4 = np.mean(dff_bg.groupby('id_in_session')['contribution'].mean())
+    average1 = dff_gg.groupby('id_in_session')['contribution'].mean()
+    average2 = dff_gb.groupby('id_in_session')['contribution'].mean()
+    average3 = dff_bb.groupby('id_in_session')['contribution'].mean()
+    average4 = dff_bg.groupby('id_in_session')['contribution'].mean()
 
-    sns.barplot(x=hue_order, y=[mean1, mean2, mean3, mean4], ci=None)
+    mean1 = dff_gg.groupby('id_in_session')['contribution'].mean().mean()
+    mean2 = dff_gb.groupby('id_in_session')['contribution'].mean().mean()
+    mean3 = dff_bb.groupby('id_in_session')['contribution'].mean().mean()
+    mean4 = dff_bg.groupby('id_in_session')['contribution'].mean().mean()
+
+    print(len(average1), len(average2), len(average3), len(average4))
+    sns.barplot(x=hue_order, y=[mean1, mean2, mean3, mean4], ci=None, alpha=.4)
+    sns.stripplot(data=[average1, average2, average3, average4])
     plt.errorbar(
         [0, 1, 2, 3], y=[mean1, mean2, mean3, mean4], yerr=[sem1, sem2, sem3, sem4], lw=2.5,
         capsize=3, capthick=2.5, ecolor='black', ls='none', zorder=10)
 
     plt.title('contribution by matching')
-    plt.ylabel('average contribution of x')
-    plt.ylim([0, 10])
-    plt.show()
-
-
-def contribution(df):
-
-    # exclude bots
-    df = df[df['rt1'] != -1]
-
-    fig = plt.figure(figsize=(8, 5))
-    # Plot 1
-    ax = fig.add_subplot(121)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    df_mean = df.groupby(['id_in_session', 'multiplier'], as_index=False)['contribution'].mean()
-    df_good = df_mean[df_mean['multiplier'] == 2.5]
-    df_bad = df_mean[df_mean['multiplier'] == 1.5]
-
-    sem1 = stats.sem(df_bad['contribution'])
-    sem2 = stats.sem(df_good['contribution'])
-
-    mean1 = np.mean(df_bad['contribution'])
-    mean2 = np.mean(df_good['contribution'])
-
-    label = [1.5, 2.5]
-    y = []
-    for i in range(2):
-        y.append(df_mean[df_mean['multiplier'] == label[i]]['contribution'].tolist())
-
-    # sns.barplot(x=['bad', 'good'], y=[mean1, mean2], ci=None)
-    ax = sns.violinplot(data=y, inner=None, alpha=.2, linewidth=0)
-
-    for x in ax.collections:
-        x.set_alpha(.5)
-
-    sns.stripplot(data=y, linewidth=.7, edgecolor='black', alpha=.7, zorder=9)
-    plt.errorbar(
-        [0, 1], y=[mean1, mean2], yerr=[sem1, sem2], lw=3,
-        markersize=7, marker='o', markerfacecolor='w', markeredgecolor='black',
-        capsize=4, capthick=2.5, ecolor='black', ls='none', zorder=10)
-
-    plt.title('contribution')
-    # ax.get_legend().remove()
-    plt.ylim([-0.08 * 10, 1.08 * 10])
-    plt.xticks(ticks=[0, 1], labels=[1.5, 2.5])
-
-    # Plot 2
-    ax = plt.subplot(122)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    df_mean = df.groupby(['id_in_session', 'multiplier'], as_index=False)['disclose'].mean()
-    df_good = df_mean[df_mean['multiplier'] == 2.5]
-    df_bad = df_mean[df_mean['multiplier'] == 1.5]
-
-    sem1 = stats.sem(df_bad['disclose'])
-    sem2 = stats.sem(df_good['disclose'])
-
-    mean1 = np.mean(df_bad['disclose'])
-    mean2 = np.mean(df_good['disclose'])
-
-    label = [1.5, 2.5]
-    y = []
-    for i in range(2):
-        y.append(df_mean[df_mean['multiplier'] == label[i]]['disclose'].tolist())
-
-    ax = sns.violinplot(data=y, inner=None, alpha=.2, linewidth=0)
-
-    for x in ax.collections:
-        x.set_alpha(.5)
-
-    sns.stripplot(data=y, linewidth=.7, edgecolor='black', zorder=9, alpha=.7)
-    plt.errorbar(
-        [0, 1], y=[mean1, mean2], yerr=[sem1, sem2], lw=3, markersize=7, marker='o',
-        markerfacecolor='w', markeredgecolor='black',
-        capsize=4, capthick=2.5, ecolor='black', ls='none', zorder=10)
-
-    plt.title('disclosure')
-    plt.ylim([-0.08, 1.08])
-    plt.xticks(ticks=[0, 1], labels=[1.5, 2.5])
-    # ax.get_legend().remove()
+    plt.ylabel('average contribution of i')
+    plt.xticks(range(4), hue_order)
+    plt.ylim([0, 10.13])
     plt.show()
 
 
 def over_time(df):
 
-    # exclude session
-    # data = data[data['session'] == sessions[1]]
-
     # exclude bots
-    data = df[df['rt1'] != -1]
-
-    ids = np.unique(data['prolific_id'])
+    # data = df[df['rt1'] != -1]
+    prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
+    data = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
 
     data['contribution'] = data['contribution'] / 10
 
-    sns.lineplot(
-        x='round_number',
-        y='contribution',
-        # hue='multiplier',
-        data=data,
-        label='contribution',
-        ci='sem')
+    for multiplier in (1.5, 2.5):
+        sns.lineplot(
+            x='round_number',
+            y='contribution',
+            # hue='multiplier',
+            data=data[data['multiplier'] == multiplier],
+            label=multiplier,
+            ci='sem')
 
-    sns.lineplot(
-        x='round_number',
-        y='disclose',
-        # hue='multiplier',
-        data=data,
-        label='disclosure',
-        ci='sem')
+    plt.title(f"Contribution over time")
+    plt.ylabel('Rate')
+    plt.ylim([0, 1.1])
+    plt.show()
 
-    plt.title(f"Over time")
+    for multiplier in (1.5, 2.5):
+        sns.lineplot(
+            x='round_number',
+            y='disclose',
+            # hue='multiplier',
+            data=data[data['multiplier'] == multiplier],
+            label=multiplier,
+            ci='sem')
+
+    plt.title(f"Disclosure over time")
     plt.ylabel('Rate')
     plt.ylim([0, 1.1])
     plt.show()
 
 
-def mw(df):
+def difference_matching_disclosure(df):
     prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
     df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
-    df = df[df['round_number'] > 30]
+    df_disclosure = df[df['round_number'] > 30]
+    mean_disclosure = df_disclosure.groupby('prolific_id', as_index=True)['disclose'].mean()
+    df_random = df[df['round_number'] <= 30]
+    mean_random = df_random.groupby('prolific_id', as_index=True)['disclose'].mean()
 
-    means = [df[df['disclosure_group']==i].groupby('prolific_id', as_index=True)['contribution'].mean() for i in (1,2)]
+    sns.barplot(data=[mean_random, mean_disclosure], alpha=.5)
+    sns.stripplot(data=[mean_random, mean_disclosure], edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+    plt.xticks([0, 1], [1.5, 2.5])
 
-    res = pg.wilcoxon(means[0], means[1][:12])
-    import pdb; pdb.set_trace()
+    plt.ylabel('Disclosure')
+    plt.show()
+
+    res = pg.wilcoxon(np.array(mean_disclosure), np.array(mean_random))
+    print(res)
 
 
-def biglm(df):
+def difference_matching_disclosure_with_other_criteria(df):
     prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
     df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
-    df = df.groupby('prolific_id', as_index=False).mean()
-    print('N=', len(df))
-    # df = df['contribution'].mean()
-    # df = df['disclose'].mean()
+    df_sorting = df[df['round_number'] > 30]
+    mean_sorting = df_sorting.groupby(
+        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['disclose'].mean()
+    df_random = df[df['round_number'] <= 30]
+    mean_random = df_random.groupby(
+        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['disclose'].mean()
 
-    # model = sm.OLS.from_formula('contribution ~ multiplier', data=df).fit()
+    # disclosure_group
+    for d_group in (1, 2):
+        data = [mean_random[mean_random['disclosure_group'] == d_group]['disclose'],
+                mean_sorting[mean_sorting['disclosure_group'] == d_group]['disclose']]
+        sns.barplot(data=data, alpha=.5)
+        sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+        plt.xticks([0, 1], ['random', 'sorting'])
+        plt.title(f'disclosure_group={d_group}')
 
-    sns.barplot(df['multiplier'], df['contribution'], alpha=.4, ci='sem')
-    sns.stripplot(df['multiplier'], df['contribution'], edgecolor='white', linewidth=0.6, size=8, alpha=.8)
-    x = df[df['multiplier']==1.5]['contribution']
-    y = df[df['multiplier']==2.5]['contribution']
-    res = pg.mwu(x, y)
+        plt.ylabel('Disclosure')
+
+        res = pg.wilcoxon(np.array(data[0]), np.array(data[1]))
+        print(res)
+        plt.show()
+
+    # multiplier
+    for multiplier in (1.5, 2.5):
+        data = [mean_random[mean_random['multiplier'] == multiplier]['disclose'],
+                mean_sorting[mean_sorting['multiplier'] == multiplier]['disclose']]
+        sns.barplot(data=data, alpha=.5)
+        sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+        plt.xticks([0, 1], ['random', 'sorting'])
+        plt.title(f'multiplier={multiplier}')
+
+        plt.ylabel('Disclosure')
+
+        res = pg.wilcoxon(np.array(data[0]), np.array(data[1]))
+        print(res)
+        plt.show()
+
+
+def difference_sorting_disclosure(df):
+    prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
+    df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
+    df_sorting = df[df['round_number'] > 30].groupby(
+        ['prolific_id', 'disclosure_group'], as_index=False)['disclose'].mean()
+
+    data = [df_sorting[df_sorting['disclosure_group'] == 1]['disclose'],
+            df_sorting[df_sorting['disclosure_group'] == 2]['disclose']]
+    sns.barplot(data=data, alpha=.5)
+    sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+    plt.xticks([0, 1], ['group 1', 'group 2'])
+    plt.ylabel('Disclosure')
+
+    res = pg.mwu(np.array(data[0]), np.array(data[1])[:18])
     print(res)
     plt.show()
 
 
+def disclosure_according_to_multiplier(df):
+    prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
+    df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
+    df = df.groupby('prolific_id', as_index=False).mean()
+    print('N=', len(df))
+    sns.barplot(df['multiplier'], df['disclose'], alpha=.4, ci='sem')
+    sns.stripplot(df['multiplier'], df['disclose'], edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+    x = df[df['multiplier']==1.5]['disclose']
+    y = df[df['multiplier']==2.5]['disclose']
+    res = pg.ttest(x, y)
+    print(res)
+    plt.show()
+
+
+def contribution_according_to_multiplier(df):
+    prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
+    df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
+    df = df.groupby('prolific_id', as_index=False).mean()
+    print('N=', len(df))
+    sns.barplot(df['multiplier'], df['contribution'], alpha=.4, ci='sem')
+    sns.stripplot(df['multiplier'], df['contribution'], edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+    x = df[df['multiplier']==1.5]['contribution']
+    y = df[df['multiplier']==2.5]['contribution']
+    res = pg.ttest(x, y)
+    print(res)
+    plt.show()
+
 
 def lm(df):
-    data = df
-
     # exclude session
     # data = data[data['session'] == sessions[1]]
     # exclude bots
     prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
     data = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
+
+    data = data[df['round_number']<31]
 
     x = data.groupby(['prolific_id'], as_index=False)['disclose'].mean()
     y = data.groupby(['prolific_id'], as_index=False)['contribution'].mean()
@@ -266,8 +253,7 @@ def lm(df):
     model = sm.OLS(y, X).fit()
     print(model.summary())
 
-
-    print(sp.spearmanr(x, y))
+    print(stats.spearmanr(x, y))
 
     y2 = model.predict(X)
     sns.scatterplot(
@@ -283,9 +269,11 @@ def lm(df):
 
 if __name__ == '__main__':
     # main()
-    df = pd.read_csv('theresa_player.csv')
-    # over_time(df)
-    # mw(df)
-    biglm(df)
-    # contribution(df)
-    # contribution_by_group(df)
+    phase_diagram()
+    df = pd.read_csv('theresa_baseline.csv')
+    disclosure_according_to_multiplier(df)
+    contribution_according_to_multiplier(df)
+    contribution_by_group(df)
+    difference_matching_disclosure_with_other_criteria(df)
+    over_time(df)
+
