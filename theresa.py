@@ -6,6 +6,8 @@ import statsmodels.api as sm
 import seaborn as sns
 import numpy as np
 
+pal = sns.color_palette("Paired", 10)
+sns.set_palette(pal)
 
 def phase_diagram():
     good = 2.5
@@ -71,7 +73,6 @@ def contribution_by_group(df):
     mean3 = dff_bb.groupby('id_in_session')['contribution'].mean().mean()
     mean4 = dff_bg.groupby('id_in_session')['contribution'].mean().mean()
 
-    print(len(average1), len(average2), len(average3), len(average4))
     sns.barplot(x=hue_order, y=[mean1, mean2, mean3, mean4], ci=None, alpha=.4)
     sns.stripplot(data=[average1, average2, average3, average4])
     plt.errorbar(
@@ -92,35 +93,45 @@ def over_time(df):
     prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
     data = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
 
-    data['contribution'] = data['contribution'] / 10
-
-    for multiplier in (1.5, 2.5):
+    # data['contribution'] = data['contribution'] / 10
+    import matplotlib
+    plt.figure(figsize=(4.2, 4.5))
+    plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
+    plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
+    plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
+    # ax.add_patch(rect_sorting)
+    colors = ["C9", "C3"]
+    for color, multiplier in zip(colors, (1.5, 2.5)):
         sns.lineplot(
             x='round_number',
             y='contribution',
-            # hue='multiplier',
             data=data[data['multiplier'] == multiplier],
             label=multiplier,
-            ci='sem')
+            ci='sem', color=color, zorder=1, alpha=1)
 
-    plt.title(f"Contribution over time")
-    plt.ylabel('Rate')
-    plt.ylim([0, 1.1])
+    # sns.lineplot(x='round_number', y='contribution', data=data, ci="sem", label="Both", color="black")
+
+    plt.title("Contribution over time")
+    plt.ylabel('Contribution level')
+    plt.xlabel('Round number')
+    plt.ylim([0, 10])
+    plt.xlim([0, 60])
+    plt.legend(loc="upper left")
     plt.show()
 
-    for multiplier in (1.5, 2.5):
-        sns.lineplot(
-            x='round_number',
-            y='disclose',
-            # hue='multiplier',
-            data=data[data['multiplier'] == multiplier],
-            label=multiplier,
-            ci='sem')
+    # for multiplier in (1.5, 2.5):
+    #     sns.lineplot(
+    #         x='round_number',
+    #         y='disclose',
+    #         hue='multiplier',
+    #         data=data[data['multiplier'] == multiplier],
+    #         label=multiplier,
+    #         ci='sem')
 
-    plt.title(f"Disclosure over time")
-    plt.ylabel('Rate')
-    plt.ylim([0, 1.1])
-    plt.show()
+    # plt.title(f"Disclosure over time")
+    # plt.ylabel('Rate')
+    # plt.ylim([0, 1.1])
+    # plt.show()
 
 
 def difference_matching_disclosure(df):
@@ -147,39 +158,44 @@ def difference_matching_disclosure_with_other_criteria(df):
     df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
     df_sorting = df[df['round_number'] > 30]
     mean_sorting = df_sorting.groupby(
-        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['disclose'].mean()
+        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['contribution'].mean()
     df_random = df[df['round_number'] <= 30]
     mean_random = df_random.groupby(
-        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['disclose'].mean()
+        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['contribution'].mean()
 
     # disclosure_group
-    for d_group in (1, 2):
-        data = [mean_random[mean_random['disclosure_group'] == d_group]['disclose'],
-                mean_sorting[mean_sorting['disclosure_group'] == d_group]['disclose']]
-        sns.barplot(data=data, alpha=.5)
-        sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8)
-        plt.xticks([0, 1], ['random', 'sorting'])
-        plt.title(f'disclosure_group={d_group}')
+    # for d_group in (1, 2):
+    #     data = [mean_random[mean_random['disclosure_group'] == d_group]['disclose'],
+    #             mean_sorting[mean_sorting['disclosure_group'] == d_group]['disclose']]
+    #     sns.barplot(data=data, alpha=.5)
+    #     sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+    #     plt.xticks([0, 1], ['random', 'sorting'])
+    #     plt.title(f'disclosure_group={d_group}')
+    #
+    #     plt.ylabel('Disclosure')
+    #
+    #     res = pg.wilcoxon(np.array(data[0]), np.array(data[1]))
+    #     print(res)
+    #     plt.show()
 
-        plt.ylabel('Disclosure')
-
-        res = pg.wilcoxon(np.array(data[0]), np.array(data[1]))
-        print(res)
-        plt.show()
-
+    colors = [["C2", "C3"], ["C8", "C9"]]
     # multiplier
-    for multiplier in (1.5, 2.5):
-        data = [mean_random[mean_random['multiplier'] == multiplier]['disclose'],
-                mean_sorting[mean_sorting['multiplier'] == multiplier]['disclose']]
-        sns.barplot(data=data, alpha=.5)
-        sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8)
+    for color, multiplier in zip(colors, (2.5, 1.5)):
+        data = [mean_random[mean_random['multiplier'] == multiplier]['contribution'],
+                mean_sorting[mean_sorting['multiplier'] == multiplier]['contribution']]
+
+        plt.figure(figsize=(3, 4.5))
+        sns.barplot(data=data, alpha=.7, palette=color)
+        sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, palette=color)
         plt.xticks([0, 1], ['random', 'sorting'])
         plt.title(f'multiplier={multiplier}')
 
-        plt.ylabel('Disclosure')
+        plt.ylabel('Contribution level')
 
         res = pg.wilcoxon(np.array(data[0]), np.array(data[1]))
         print(res)
+
+        plt.tight_layout()
         plt.show()
 
 
@@ -269,11 +285,11 @@ def lm(df):
 
 if __name__ == '__main__':
     # main()
-    phase_diagram()
+    # phase_diagram()
     df = pd.read_csv('theresa_baseline.csv')
-    disclosure_according_to_multiplier(df)
-    contribution_according_to_multiplier(df)
-    contribution_by_group(df)
+    # disclosure_according_to_multiplier(df)
+    # contribution_according_to_multiplier(df)
+    # contribution_by_group(df)
     difference_matching_disclosure_with_other_criteria(df)
     over_time(df)
 
