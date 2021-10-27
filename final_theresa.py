@@ -113,17 +113,17 @@ def difference_contribution_in_sorting_according_to_disclosure_group(df):
     df_sorting = df[df['round_number'] > 30]
     #compute average for each subject
     mean_sorting = df_sorting.groupby(
-        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['contribution'].mean()
+        ['prolific_id', 'disclosure_group', 'multiplier'], as_index=False)['disclose'].mean()
 
     colors = ["C4", "C5"]
     # multiplier
-    data = [mean_sorting[mean_sorting['disclosure_group'] == 1]['contribution'],
-            mean_sorting[mean_sorting['disclosure_group'] == 2]['contribution']]
+    data = [mean_sorting[mean_sorting['disclosure_group'] == 1]['disclose'],
+            mean_sorting[mean_sorting['disclosure_group'] == 2]['disclose']]
 
     plt.figure(figsize=(3, 4.5))
     sns.barplot(data=data, alpha=.7, palette=colors)
     sns.stripplot(data=data, edgecolor='white', linewidth=0.6, size=8, palette=colors)
-    plt.xticks([0, 1], ['Discloser', 'Non-Discloser'])
+    plt.xticks([0, 1], ['Non-discloser', 'Discloser'])
     # plt.title(f'Disclosure group={d_group}')
 
     plt.ylabel('Contribution level')
@@ -137,10 +137,10 @@ def difference_contribution_in_sorting_according_to_disclosure_group(df):
 
 if __name__ == '__main__':
     # main()
-    heatmap()
+    # heatmap()
 
     df = pd.read_csv('theresa_baseline.csv')
-    difference_contribution_over_matching_according_to_multiplier(df)
+    # difference_contribution_over_matching_according_to_multiplier(df)
     difference_contribution_in_sorting_according_to_disclosure_group(df)
-    over_time(df)
+    # over_time(df)
 
