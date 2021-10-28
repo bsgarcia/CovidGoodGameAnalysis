@@ -1,4 +1,4 @@
-import scipy.stats as stats
+# import scipy.stats as stats
 import pandas as pd
 import pingouin as pg
 import matplotlib.pyplot as plt
@@ -176,71 +176,115 @@ def over_time_2(df):
     # data = df[df['rt1'] != -1]
     prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
     df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
+    
 
-    # data['contribution'] = data['contribution'] / 10
-    plt.figure(figsize=(4.2, 4.5))
-    # plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
-    # plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
-    # plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
-    # ax.add_patch(rect_sorting)
-    colors = ["C9", "C3"]
-    data = df[df.groupby(['group_id'])['multiplier'].transform('nunique') > 1]
-    for color, multiplier in zip(colors, (1.5, 2.5)):
-        sns.lineplot(
-            x='round_number',
-            y='contribution',
-            data=data[data['multiplier'] == multiplier],
-            label=multiplier,
-            ci='sem', color=color, zorder=1, alpha=1)
+    for exp in (1, ):
 
-    # sns.lineplot(x='round_number', y='contribution', data=data, ci="sem", label="Both", color="black")
+        # data['contribution'] = data['contribution'] / 10
+        plt.figure(figsize=(4.2, 4.5))
 
-    plt.title("Contribution over time")
-    plt.ylabel('Contribution level')
-    plt.xlabel('Round number')
-    plt.ylim([0, 10])
-    plt.xlim([0, 60])
-    plt.legend(loc="upper left")
-    plt.show()
+        # plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
+        # plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
+        # plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
+        # ax.add_patch(rect_sorting)
+        colors = ["C9", "C3"]
+        data = df[df.groupby(['group_id'])['multiplier'].transform('nunique') > 1]
+        data = data[data['exp']==exp]
+        for color, multiplier in zip(colors, (1, 2)):
+            sns.lineplot(
+                x='round_number',
+                y='payoff',
+                # hue='disclosure_group',
+                data=data[data['disclosure_group'] == multiplier],
+                label=multiplier,
+                ci='sem', color=color, zorder=1, alpha=1)
 
-    for multiplier in (1.5, 2.5):
-        sns.lineplot(
-            x='round_number',
-            y='disclose',
-            # hue='multiplier',
-            data=data[data['multiplier'] == multiplier],
-            label=multiplier,
-            ci='sem')
+        # sns.lineplot(x='round_number', y='contribution', data=data, ci="sem", label="Both", color="black")
+        plt.title(f'Exp. {exp}')
+        plt.show()
 
-    plt.title(f"Disclosure over time")
-    plt.ylabel('Rate')
-    plt.ylim([0, 1.1])
-    plt.show()
+    # plt.title("Contribution over time")
+    # plt.ylabel('Contribution level')
+    # plt.xlabel('Round number')
+    # plt.ylim([0, 10])
+    # plt.xlim([0, 60])
+    # plt.legend(loc="upper left")
+    # plt.show()
 
+    # for multiplier in (1.5, 2.5):
+    #     sns.lineplot(
+    #         x='round_number',
+    #         y='disclose',
+    #         # hue='multiplier',
+    #         data=data[data['multiplier'] == multiplier],
+    #         label=multiplier,
+    #         ci='sem')
+
+    # plt.title(f"Disclosure over time")
+    # plt.ylabel('Rate')
+    # plt.ylim([0, 1.1])
+    # plt.show()
+def normalized_payoff(df):
+    group_ids = df['group_id'].unique()
+    df['max_payoff'] = np.NaN
+    
+    for g in group_ids:
+        d = df[df['group_id']==g]
+        if len(d) == 2:
+            idx = d.index.tolist()
+            if d.iloc[0]['multiplier'] == 1.5\
+                 and d.iloc[1]['multiplier'] == 2.5:
+                max_payoff = [22.5, 20]
+                
+            if d.iloc[1]['multiplier'] == 1.5\
+                 and d.iloc[0]['multiplier'] == 2.5:
+                max_payoff = [20, 22.5]
+
+            if d.iloc[1]['multiplier'] == 1.5\
+                 and d.iloc[0]['multiplier'] == 1.5:
+                max_payoff = [17.5, 17.5]
+             
+            if d.iloc[1]['multiplier'] == 2.5\
+                 and d.iloc[0]['multiplier'] == 2.5:
+                max_payoff = [25, 25]
+
+            df.loc[idx[0], 'max_payoff'] = max_payoff[0] 
+            df.loc[idx[1], 'max_payoff'] = max_payoff[1] 
+    return df
+            
 
 def over_time(df):
 
     # exclude bots
     # data = df[df['rt1'] != -1]
+
     for exp in (1, 2):
+
+
+
         data = df[df['exp']==exp]
+        data = data[data.groupby(['group_id'])['multiplier'].transform('nunique') > 1]
         prolific_id_to_exclude = data[data['rt1'] == -1]['prolific_id'].unique()
         data = data[~data['prolific_id'].isin(prolific_id_to_exclude)]
 
+        print(data[~(data['payoff']>=0)])
+
+
         # data['contribution'] = data['contribution'] / 10
+        # data['payoff'] = 
         #plt.figure(figsize=(4.2, 4.5))
         plt.figure()
 
-        if exp == 1:
-            plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
-            plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
-            plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
+        # if exp == 1:
+            # plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
+            # plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
+            # plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
             # ax.add_patch(rect_sorting)
         colors = ["C9", "C3"]
         for color, multiplier in zip(colors, (1.5, 2.5)):
             sns.lineplot(
                 x='round_number',
-                y='contribution',
+                y='norm_payoff',
                 data=data[data['multiplier'] == multiplier],
                 label=multiplier,
                 ci='sem', color=color, zorder=1, alpha=1)
@@ -248,31 +292,31 @@ def over_time(df):
         # sns.lineplot(x='round_number', y='contribution', data=data, ci="sem", label="Both", color="black")
 
         plt.title(f"Exp. {exp}")
-        plt.ylabel('Contribution level')
+        # plt.ylabel('Contribution level')
         plt.xlabel('Round number')
-        plt.ylim([0, 10])
+        # plt.ylim([0, 10])
         plt.xlim([0, 60])
         plt.legend(loc="upper left")
         plt.draw()
 
-        plt.figure()
-        if exp == 1:
-            plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
-            plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
-            plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
+        # plt.figure()
+        # if exp == 1:
+        #     plt.text(x=8, y=.5, s="random treatment", color="grey", alpha=.9)
+        #     plt.text(x=38, y=.5, s="sorting treatment", color="grey", alpha=.9)
+        #     plt.plot([30, 30], [0, 10], linestyle='--', color="grey")
          
-        for multiplier in (1.5, 2.5):
-            sns.lineplot(
-                x='round_number',
-                y='disclose',
-                data=data[data['multiplier'] == multiplier],
-                label=multiplier,
-                ci='sem')
+        # for multiplier in (1.5, 2.5):
+        #     sns.lineplot(
+        #         x='round_number',
+        #         y='disclose',
+        #         data=data[data['multiplier'] == multiplier],
+        #         label=multiplier,
+        #         ci='sem')
 
-        plt.title(f"Exp. {exp}")
-        plt.ylabel('Rate')
-        plt.ylim([0, 1.1])
-        plt.draw()
+        # plt.title(f"Exp. {exp}")
+        # plt.ylabel('Rate')
+        # plt.ylim([0, 1.1])
+        # plt.draw()
     plt.show()
 
 
@@ -470,6 +514,38 @@ def disclosure_according_to_multiplier(df):
     plt.show()
 
 
+def payoff_according_to_multiplier(df):
+    prolific_id_to_exclude = df[df['rt1'] == -1]['prolific_id'].unique()
+    df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
+    df = df[df['round_number']>30]
+    df = df.groupby('prolific_id').mean()
+    print('N=', len(df))
+    sns.barplot(x='multiplier', y='norm_payoff', alpha=.4, ci=68, data=df, hue='exp')
+    plt.legend('off')
+    sns.stripplot(x='multiplier', y='norm_payoff', hue='exp', data=df, edgecolor='white', linewidth=0.6, size=8, alpha=.8, dodge=True)
+    for multiplier in (1.5, 2.5):
+        print('*'*20)
+        print(f'Multiplier. {multiplier}')
+        x = df[df['multiplier']==multiplier]['disclose'][df['exp']==1]
+        y = df[df['multiplier']==multiplier]['disclose'][df['exp']==2]
+        print(len(x), len(y))
+        res = pg.ttest(x, y)
+        print(res)
+    for exp in (1, 2):
+        print('*'*20)
+        print(f'Exp. {exp}')
+        x = df[df['multiplier']==1.5]['disclose'][df['exp']==exp]
+        y = df[df['multiplier']==2.5]['disclose'][df['exp']==exp]
+        print(len(x), len(y))
+        res = pg.ttest(x, y)
+        print(res)
+
+    # plt.legend('')
+    plt.show()
+
+
+
+
 
 
 def contribution_according_to_multiplier(df):
@@ -542,19 +618,26 @@ def lm(df):
 if __name__ == '__main__':
     # main()
     # phase_diagram()
+
+    # return
     df1 = pd.read_csv('data/last_data_2.csv')
     df2 = pd.read_csv('data/theresa_baseline.csv')
+
+    df1 = normalized_payoff(df1)
+    df1['norm_payoff'] = df1['payoff']/df1['max_payoff']
+    df2 = normalized_payoff(df2)
+    df2['norm_payoff'] = df2['payoff']/df2['max_payoff']
 
     df1['exp'] = 2
     df2['exp'] = 1
     df = pd.concat([df1 , df2])
     df['exp'] = df['exp'].astype(int)
-
-    # disclosure_according_to_multiplier(df)
-    # contribution_according_to_multiplier(df)
+        # disclosure_according_to_multiplier(df)
+    # contribution_according_to_multilier(df)
     # lm(df)
-    contribution_by_group(df)
+    # over_time(df)
     # disclosure_by_group(df)
     # difference_matching_disclosure_with_other_criteria(df)
     # over_time(df)
+    payoff_according_to_multiplier(df)
 
