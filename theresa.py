@@ -14,8 +14,8 @@ sns.set_palette(pal)
 # Simulations
 # ------------------------------------------------------------------------------------------------------------
 def heatmaps():
-    good = 2.5
-    bad = 1.5
+    good = 1.2
+    bad = .8
 
     vmin = 7.5
     vmax = 25
@@ -223,13 +223,18 @@ def over_time_2(df):
 
 def over_time(df, var):
 
-    for exp in (1, 2):
+
+    for exp in df['exp'].unique():
+        n = len(df['prolific_id'].unique())
+        print(f'Exp. {exp}, N={n}')
+
 
         data = df[df['exp']==exp]
+        f1, f2 = sorted(data['multiplier'].unique())
         plt.subplot(2, 1, 1)
 
         colors = ["C9", "C3"]
-        for color, multiplier in zip(colors, (1.5, 2.5)):
+        for color, multiplier in zip(colors, (f1, f2)):
             ax = sns.lineplot(
                 x='round_number',
                 y=var,
@@ -258,21 +263,21 @@ def over_time(df, var):
         groups = []
         for t in range(1, data['round_number'].max()+1):
             d = data['group_id'][data['round_number']==t].unique()
-            count = {k: 0 for k in it.product((1.5, 2.5), repeat=2)}
-            del count[2.5, 1.5]
+            count = {k: 0 for k in it.product((f1, f2), repeat=2)}
+            del count[f2, f1]
 
             for i in d:
                 m1 = data[data['group_id']==i]['multiplier'].iloc[0]
                 m2 = data[data['group_id']==i]['multiplier'].iloc[1]
-                if all(i in (m1, m2) for i in (1.5, 2.5)):
-                    count[1.5, 2.5] += 1
+                if all(i in (m1, m2) for i in (f1, f2)):
+                    count[f1, f2] += 1
                 else:
                     count[m1, m2] += 1
             
             groups.append({'t': t,  **count})
 
         dd = pd.DataFrame(groups)
-        for k in ((1.5, 2.5), (2.5, 2.5), (1.5, 1.5)):
+        for k in ((f1, f2), (f2, f2), (f1, f1)):
             ax = sns.lineplot(
                 x='t',
                 y=k,
@@ -356,6 +361,92 @@ def payoff_according_to_multiplier(df):
     # plt.legend('')
     plt.show()
 
+def payoff_according_to_disclosure_group(df):
+    f1, f2 = sorted(df['multiplier'].unique())
+    df = df[df['round_number']>30]
+    df = df.groupby('prolific_id').mean()
+
+    print('N=', len(df))
+    sns.barplot(x='disclosure_group', y='norm_payoff', alpha=.4, ci=68, data=df)
+    # plt.legend('off')
+    sns.stripplot(x='disclosure_group', y='norm_payoff', data=df, edgecolor='white', linewidth=0.6, size=8, alpha=.8, dodge=True)
+    # for multiplier in (f1, f2):
+    #     print('*'*20)
+    #     print(f'Multiplier. {multiplier}')
+    x = df[df['disclosure_group']==1]['norm_payoff']
+    y = df[df['disclosure_group']==2]['norm_payoff']
+    print(x)
+    print(y)
+    print(pg.mwu(x, y))
+    #     print(len(x), len(y))
+    #     res = pg.ttest(x, y)
+    #     print(res)
+    # # for exp in (1, 2):
+    #     print('*'*20)
+    #     print(f'Exp. {exp}')
+    #     x = df[df['multiplier']==1.5]['disclose'][df['exp']==exp]
+    #     y = df[df['multiplier']==2.5]['disclose'][df['exp']==exp]
+    #     print(len(x), len(y))
+    #     res = pg.ttest(x, y)
+    #     print(res)
+
+    # plt.legend('')
+    plt.show()
+
+
+def period_comparison(df):
+    # f1, f2 = sorted(df1['multiplier'].unique())
+
+    df['period'] = np.NaN
+    df.loc[df['round_number']>30, 'period'] = 2
+    df.loc[df['round_number']<30, 'period'] = 1
+
+    for period in (1, 2):
+        
+        data = df[df['period']==period].groupby('prolific_id').mean()
+
+        sns.barplot(x='multiplier', y='disclose', alpha=.4, ci=68, data=data)
+        sns.stripplot(x='multiplier', y='disclose', data=data, edgecolor='white', linewidth=0.6, size=8, alpha=.8, dodge=True)
+    # for multiplier in (f1, f2):
+    #     print('*'*20)
+    #     print(f'Multiplier. {multiplier}')
+
+    x = df[df['period']==1].groupby('prolific_id').mean()['disclose']
+    y = df[df['period']==2].groupby('prolific_id').mean()['disclose']
+    print(x)
+    print(y)
+    print(pg.mwu(x, y))
+    print(pg.ttest(x, y))
+    plt.show()
+    #
+
+
+
+def payoff_cross_exp_disc_group(df):
+    # f1, f2 = sorted(df1['multiplier'].unique())
+
+    df = df[df['round_number']>30]
+
+    df = df.groupby('prolific_id').mean()
+
+    print('N=', len(df))
+
+    sns.barplot(x='exp', y='norm_payoff', alpha=.4, ci=68, data=df)
+    # plt.legend('off')
+    sns.stripplot(x='exp', y='norm_payoff', data=df, edgecolor='white', linewidth=0.6, size=8, alpha=.8, dodge=True)
+    # for multiplier in (f1, f2):
+    #     print('*'*20)
+    #     print(f'Multiplier. {multiplier}')
+
+    x = df[df['exp']==1]['norm_payoff']
+    y = df[df['exp']==2]['norm_payoff']
+    print(x)
+    print(y)
+    print(pg.mwu(x, y))
+    print(pg.ttest(x, y))
+    plt.show()
+    #
+
 
 def contribution_according_to_multiplier(df):
     df = df[df['round_number']>30]
@@ -421,16 +512,23 @@ def lm(df):
 # Cleaning functions
 # ------------------------------------------------------------------------------------------------------------
 
+def get_max_payoff(f1, f2):
+    data = np.zeros((11, 11))
+    for i in range(11):
+        for j in range(11):
+            data[j, i] = 10 - i + ((i*f1 + j*f2)/2)
+    return np.amax(data)
+
+
 def add_max_payoff(df):
     group_ids = df['group_id'].unique()
+    f1, f2 = sorted(df['multiplier'].unique())
     df['max_payoff'] = np.NaN
-    matching = {
-        (1.5, 2.5): [22.5, 20],
-        (2.5, 1.5): [20, 22.5],
-        (2.5, 2.5): [25, 25],
-        (1.5, 1.5): [17.5, 17.5]
-    }
-    
+    matching = {}
+    for m1, m2 in ((f1, f2), (f1, f1), (f2, f1), (f2, f2)):
+        matching[(m1, m2)] = [get_max_payoff(m1, m2), get_max_payoff(m2, m1)]
+        
+    print(matching)
     for g in group_ids:
         d = df[df['group_id']==g]
         if len(d) == 2:
@@ -453,6 +551,10 @@ def remove_bots(df):
     df = df[~df['prolific_id'].isin(prolific_id_to_exclude)]
     return df
 
+def remove_bots_but_keep_previous_rows(df):
+    return df[df['rt1'] != -1]
+
+
 def remove_trials_where_both_players_are_bots(df):
     group_ids = df['group_id'].unique()
     for g in group_ids:
@@ -465,40 +567,59 @@ def remove_trials_where_both_players_are_bots(df):
     return df
 
 
-def merge_exp(df1, df2):
-    df1['exp'] = 1
-    df2['exp'] = 2
-    df = pd.concat([df1 , df2])
-    df['exp'] = df['exp'].astype(int)
+def add_exp_num(df, num):
+    df['exp'] = num
     return df
-     
 
 
 if __name__ == '__main__':
 
     # heatmaps()
+    # exit() 
 
+    print('Start reading data...')
     df2 = pd.read_csv('data/theresa_control.csv')
-    df1 = pd.read_csv('data/theresa_baseline.csv')
+    df1 = pd.read_csv('data/theresa_sorting.csv')
+    df3 = pd.read_csv('data/fernanda_baseline.csv')
+    df3 = df3[df3['session']=='85jbdx27']
+    
+    # import pdb; pdb.set_trace()
 
     # add normalized payoffs to dataframes
     df1 = add_max_payoff(df1)
     df2 = add_max_payoff(df2)
     df1 = add_norm_payoff(df1)
     df2 = add_norm_payoff(df2)
+    df3 = add_max_payoff(df3)
+    df3 = add_norm_payoff(df3)
 
     # remove bots
     df1 = remove_trials_where_both_players_are_bots(df1)
     df2 = remove_trials_where_both_players_are_bots(df2)
+    # df1 = remove_bots(df1)
+    # df2 = remove_bots(df2)
     
+    df3 = remove_trials_where_both_players_are_bots(df3)
+
     # avoid identical group_ids among exp.1 and exp.2 
-    df2['group_id'] += 20000
+    # df2['group_id'] += 20000
+    
+    df1 = add_exp_num(df1, 1)
+    df2 = add_exp_num(df2, 2)
+    df3 = add_exp_num(df3, 3)
 
     # merge exp data and add an exp column which specifies the exp number (1 or 2)
-    df = merge_exp(df1, df2)
+    df = pd.concat([df1, df2])
+    print('Done.')
     
     # provide dataframe  + variable to plot as y over round_number
-    over_time(df, 'norm_payoff')
+    # over_time(df1[df1.groupby('group_id')['multiplier'].transform('nunique')>1], 'payoff')
+    # import pdb; pdb.set_trace()
+    # over_time(df, 'norm_payoff')
+    df = remove_bots(df2)
+    period_comparison(df)
+    # disclosure_according_to_multiplier(df)
+    
     
 
 
