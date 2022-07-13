@@ -22,12 +22,12 @@ def main(df):
         print('*'*30)
         for sub in subjects:
             dd = exclude_bot_responses(d[d['prolific_id'] == sub])
-            rate = .003 if 1.5 in df['multiplier'].unique() else .005
+            rate = .003
 
             print(f'{sub},{compute_bonus(dd, rate)}')
 
 
 if __name__ == '__main__':
 
-    df = pd.read_csv('last_data_2.csv')
+    df = pd.read_csv('data/theresa_with_cost.csv')
     main(df)
