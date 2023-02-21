@@ -23,11 +23,13 @@ def main(df):
         for sub in subjects:
             dd = exclude_bot_responses(d[d['prolific_id'] == sub])
             rate = .003
-
-            print(f'{sub},{compute_bonus(dd, rate)}')
+            if len(dd) < 60:
+                # print(sub)
+                print(f'{sub},{compute_bonus(dd, rate)}, n={len(dd)}')
+                # print(f'{sub},{compute_bonus(dd, rate)}')
 
 
 if __name__ == '__main__':
 
-    df = pd.read_csv('data/theresa_with_cost.csv')
+    df = pd.read_csv('data/cost_single_final_58.csv')
     main(df)

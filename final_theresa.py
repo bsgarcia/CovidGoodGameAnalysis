@@ -137,7 +137,7 @@ def difference_contribution_in_sorting_according_to_disclosure_group(df):
 
 if __name__ == '__main__':
     # main()
-    # heatmap()
+    heatmap()
 
     df = pd.read_csv('theresa_baseline.csv')
     # difference_contribution_over_matching_according_to_multiplier(df)
