@@ -1,8 +1,0 @@
-,Contrast,exp,A,B,Paired,Parametric,U-val,alternative,p-unc,p-corr,p-adjust,hedges
-0,exp,-,1.0,2.0,False,False,318.0,two-sided,0.7942614054312678,1.0,bonf,0.20576693494489418
-1,exp,-,1.0,3.0,False,False,688.0,two-sided,2.3175074260195435e-10,6.952522278058631e-10,bonf,6.42932096266353
-2,exp,-,2.0,3.0,False,False,504.0,two-sided,5.0505728389109966e-09,1.515171851673299e-08,bonf,4.963726999394931
-3,multiplier,-,1.5,2.5,False,False,552.5,two-sided,0.09149901807484696,,,-0.31640273101647015
-4,exp * multiplier,1.0,1.5,2.5,False,False,68.5,two-sided,0.03089415083467129,0.09268245250401387,bonf,-0.5902616131634291
-5,exp * multiplier,2.0,1.5,2.5,False,False,66.0,two-sided,0.6438884024365641,1.0,bonf,-0.19771585955455237
-6,exp * multiplier,3.0,1.5,2.5,False,False,33.0,two-sided,0.04360369630338695,0.13081108891016086,bonf,-0.8180807815774739
